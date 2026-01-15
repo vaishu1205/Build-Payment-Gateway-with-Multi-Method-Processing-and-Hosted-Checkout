@@ -24,9 +24,7 @@ const checkIdempotencyKey = async (key, merchantId) => {
     const record = result.rows[0];
     const now = new Date();
 
-    // Check if expired
     if (new Date(record.expires_at) < now) {
-      // Delete expired key
       await pool.query(
         "DELETE FROM idempotency_keys WHERE key = $1 AND merchant_id = $2",
         [key, merchantId]
@@ -34,7 +32,6 @@ const checkIdempotencyKey = async (key, merchantId) => {
       return null;
     }
 
-    // Return cached response
     return record.response;
   } catch (error) {
     console.error("Error checking idempotency key:", error);
@@ -64,7 +61,6 @@ const storeIdempotencyKey = async (key, merchantId, response) => {
     );
   } catch (error) {
     console.error("Error storing idempotency key:", error);
-    // Don't throw - idempotency is a nice-to-have, not critical
   }
 };
 

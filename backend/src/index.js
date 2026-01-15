@@ -17,7 +17,6 @@ const startServer = async () => {
   try {
     await initializeDatabase();
 
-    // Test Redis connection
     try {
       await paymentQueue.isReady();
       console.log("Connected to Redis successfully");
@@ -35,7 +34,6 @@ const startServer = async () => {
   }
 };
 
-// Graceful shutdown
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received, closing server...");
   await paymentQueue.close();

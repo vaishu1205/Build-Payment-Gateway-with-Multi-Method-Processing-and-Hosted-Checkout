@@ -7,14 +7,12 @@ const {
   deliverWebhook,
 } = require("./services/webhookService");
 
-// Payment processing worker
 paymentQueue.process(async (job) => {
   const { paymentId, method } = job.data;
 
   console.log(`Processing payment: ${paymentId}`);
 
   try {
-    // Simulate payment processing delay
     const testMode = process.env.TEST_MODE === "true";
     const delay = testMode
       ? parseInt(process.env.TEST_PROCESSING_DELAY || "1000")
@@ -27,7 +25,6 @@ paymentQueue.process(async (job) => {
 
     await new Promise((resolve) => setTimeout(resolve, delay));
 
-    // Determine payment outcome
     let isSuccess;
     if (testMode) {
       isSuccess = process.env.TEST_PAYMENT_SUCCESS === "true";
@@ -39,7 +36,6 @@ paymentQueue.process(async (job) => {
       isSuccess = Math.random() < successRate;
     }
 
-    // Fetch payment details
     const paymentResult = await pool.query(
       "SELECT * FROM payments WHERE id = $1",
       [paymentId]
@@ -51,7 +47,6 @@ paymentQueue.process(async (job) => {
 
     const payment = paymentResult.rows[0];
 
-    // Update payment status
     if (isSuccess) {
       await pool.query(
         `UPDATE payments 
@@ -62,7 +57,6 @@ paymentQueue.process(async (job) => {
 
       console.log(`Payment ${paymentId} succeeded`);
 
-      // Enqueue webhook for payment.success
       const webhookPayload = {
         payment: {
           id: payment.id,
@@ -100,7 +94,6 @@ paymentQueue.process(async (job) => {
 
       console.log(`Payment ${paymentId} failed`);
 
-      // Enqueue webhook for payment.failed
       const webhookPayload = {
         payment: {
           id: payment.id,
@@ -129,7 +122,6 @@ paymentQueue.process(async (job) => {
   }
 });
 
-// Webhook delivery worker
 webhookQueue.process(async (job) => {
   const { webhookLogId, merchantId, event, payload } = job.data;
 
@@ -144,18 +136,15 @@ webhookQueue.process(async (job) => {
   }
 });
 
-// Refund processing worker
 refundQueue.process(async (job) => {
   const { refundId } = job.data;
 
   console.log(`Processing refund: ${refundId}`);
 
   try {
-    // Simulate refund processing delay (3-5 seconds)
     const delay = Math.floor(Math.random() * 2000) + 3000;
     await new Promise((resolve) => setTimeout(resolve, delay));
 
-    // Fetch refund details
     const refundResult = await pool.query(
       "SELECT * FROM refunds WHERE id = $1",
       [refundId]
@@ -167,7 +156,6 @@ refundQueue.process(async (job) => {
 
     const refund = refundResult.rows[0];
 
-    // Update refund status
     await pool.query(
       `UPDATE refunds 
        SET status = 'processed', 
@@ -178,7 +166,6 @@ refundQueue.process(async (job) => {
 
     console.log(`Refund ${refundId} processed`);
 
-    // Enqueue webhook for refund.processed
     const webhookPayload = {
       refund: {
         id: refund.id,
@@ -203,7 +190,6 @@ refundQueue.process(async (job) => {
   }
 });
 
-// Initialize database and start worker
 const startWorker = async () => {
   try {
     console.log("Starting payment gateway worker...");
@@ -217,7 +203,6 @@ const startWorker = async () => {
 
 startWorker();
 
-// Graceful shutdown
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received, closing worker...");
   await paymentQueue.close();

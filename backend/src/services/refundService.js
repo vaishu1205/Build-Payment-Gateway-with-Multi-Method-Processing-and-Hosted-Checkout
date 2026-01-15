@@ -5,7 +5,6 @@ const { refundQueue } = require("../config/queue");
 const createRefund = async (paymentId, merchantId, refundData) => {
   const { amount, reason } = refundData;
 
-  // Fetch payment details
   const paymentResult = await pool.query(
     "SELECT * FROM payments WHERE id = $1 AND merchant_id = $2",
     [paymentId, merchantId]
@@ -20,7 +19,6 @@ const createRefund = async (paymentId, merchantId, refundData) => {
 
   const payment = paymentResult.rows[0];
 
-  // Verify payment is refundable
   if (payment.status !== "success") {
     throw {
       code: "BAD_REQUEST_ERROR",
@@ -28,7 +26,6 @@ const createRefund = async (paymentId, merchantId, refundData) => {
     };
   }
 
-  // Calculate total already refunded
   const refundsResult = await pool.query(
     `SELECT COALESCE(SUM(amount), 0) as total_refunded 
      FROM refunds 
@@ -39,7 +36,6 @@ const createRefund = async (paymentId, merchantId, refundData) => {
   const totalRefunded = parseInt(refundsResult.rows[0].total_refunded);
   const availableAmount = payment.amount - totalRefunded;
 
-  // Validate refund amount
   if (!amount || amount <= 0) {
     throw {
       code: "BAD_REQUEST_ERROR",
@@ -54,7 +50,6 @@ const createRefund = async (paymentId, merchantId, refundData) => {
     };
   }
 
-  // Generate refund ID
   let refundId;
   let isUnique = false;
 
@@ -69,7 +64,6 @@ const createRefund = async (paymentId, merchantId, refundData) => {
     }
   }
 
-  // Create refund record
   const result = await pool.query(
     `INSERT INTO refunds (id, payment_id, merchant_id, amount, reason, status, created_at)
      VALUES ($1, $2, $3, $4, $5, 'pending', CURRENT_TIMESTAMP)
@@ -79,7 +73,6 @@ const createRefund = async (paymentId, merchantId, refundData) => {
 
   const refund = result.rows[0];
 
-  // Enqueue refund processing job
   await refundQueue.add({
     refundId: refund.id,
   });

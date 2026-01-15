@@ -6,9 +6,6 @@ const {
 } = require("../utils/webhook");
 const { webhookQueue } = require("../config/queue");
 
-/**
- * Create webhook log entry
- */
 const createWebhookLog = async (merchantId, event, payload) => {
   try {
     const result = await pool.query(
@@ -20,7 +17,6 @@ const createWebhookLog = async (merchantId, event, payload) => {
 
     const webhookLog = result.rows[0];
 
-    // Enqueue webhook delivery job
     await webhookQueue.add({
       webhookLogId: webhookLog.id,
       merchantId: merchantId,
@@ -37,12 +33,8 @@ const createWebhookLog = async (merchantId, event, payload) => {
   }
 };
 
-/**
- * Deliver webhook to merchant endpoint
- */
 const deliverWebhook = async (webhookLogId, merchantId, event, payload) => {
   try {
-    // Fetch merchant details
     const merchantResult = await pool.query(
       "SELECT webhook_url, webhook_secret FROM merchants WHERE id = $1",
       [merchantId]
@@ -55,7 +47,6 @@ const deliverWebhook = async (webhookLogId, merchantId, event, payload) => {
 
     const merchant = merchantResult.rows[0];
 
-    // Skip if webhook URL not configured
     if (!merchant.webhook_url) {
       console.log("Webhook URL not configured for merchant:", merchantId);
       await pool.query(
@@ -68,7 +59,6 @@ const deliverWebhook = async (webhookLogId, merchantId, event, payload) => {
       return;
     }
 
-    // Fetch current webhook log
     const logResult = await pool.query(
       "SELECT * FROM webhook_logs WHERE id = $1",
       [webhookLogId]
@@ -82,7 +72,6 @@ const deliverWebhook = async (webhookLogId, merchantId, event, payload) => {
     const webhookLog = logResult.rows[0];
     const currentAttempts = webhookLog.attempts;
 
-    // Generate webhook signature
     const webhookPayload = {
       event: event,
       timestamp: Math.floor(Date.now() / 1000),
@@ -94,7 +83,6 @@ const deliverWebhook = async (webhookLogId, merchantId, event, payload) => {
       merchant.webhook_secret
     );
 
-    // Send HTTP POST request
     let responseCode = null;
     let responseBody = null;
     let deliverySuccess = false;
@@ -126,11 +114,9 @@ const deliverWebhook = async (webhookLogId, merchantId, event, payload) => {
       console.error(`Webhook delivery failed: ${error.message}`);
     }
 
-    // Update webhook log
     const newAttempts = currentAttempts + 1;
 
     if (deliverySuccess) {
-      // Success - mark as completed
       await pool.query(
         `UPDATE webhook_logs 
          SET status = 'success', 
@@ -142,9 +128,7 @@ const deliverWebhook = async (webhookLogId, merchantId, event, payload) => {
         [newAttempts, responseCode, responseBody, webhookLogId]
       );
     } else {
-      // Failed - check if should retry
       if (newAttempts >= 5) {
-        // Max attempts reached - permanently failed
         await pool.query(
           `UPDATE webhook_logs 
            SET status = 'failed', 
@@ -159,7 +143,6 @@ const deliverWebhook = async (webhookLogId, merchantId, event, payload) => {
           `Webhook ${webhookLogId} permanently failed after 5 attempts`
         );
       } else {
-        // Schedule retry
         const nextRetry = calculateNextRetry(newAttempts);
 
         await pool.query(
@@ -174,7 +157,6 @@ const deliverWebhook = async (webhookLogId, merchantId, event, payload) => {
           [newAttempts, nextRetry, responseCode, responseBody, webhookLogId]
         );
 
-        // Re-enqueue with delay
         const delayMs = nextRetry.getTime() - Date.now();
         await webhookQueue.add(
           {
@@ -200,9 +182,6 @@ const deliverWebhook = async (webhookLogId, merchantId, event, payload) => {
   }
 };
 
-/**
- * List webhook logs for merchant
- */
 const listWebhookLogs = async (merchantId, limit = 10, offset = 0) => {
   const result = await pool.query(
     `SELECT id, event, status, attempts, created_at, last_attempt_at, response_code
@@ -240,9 +219,6 @@ const listWebhookLogs = async (merchantId, limit = 10, offset = 0) => {
   };
 };
 
-/**
- * Retry webhook delivery
- */
 const retryWebhook = async (webhookLogId, merchantId) => {
   const result = await pool.query(
     "SELECT * FROM webhook_logs WHERE id = $1 AND merchant_id = $2",
@@ -268,7 +244,6 @@ const retryWebhook = async (webhookLogId, merchantId) => {
     [webhookLogId]
   );
 
-  // Enqueue for immediate delivery
   await webhookQueue.add({
     webhookLogId: webhookLog.id,
     merchantId: merchantId,

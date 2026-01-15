@@ -17,7 +17,6 @@ const createPayment = async (
   paymentData,
   idempotencyKey = null
 ) => {
-  // Check idempotency key
   if (idempotencyKey) {
     const cachedResponse = await checkIdempotencyKey(
       idempotencyKey,
@@ -121,7 +120,6 @@ const createPayment = async (
     }
   }
 
-  // Create payment with 'pending' status (changed from 'processing' for Deliverable 2)
   const result = await pool.query(
     `
     INSERT INTO payments (id, order_id, merchant_id, amount, currency, method, status, vpa, card_network, card_last4, created_at, updated_at)
@@ -143,7 +141,6 @@ const createPayment = async (
 
   const payment = result.rows[0];
 
-  // Enqueue payment processing job (async processing for Deliverable 2)
   await paymentQueue.add({
     paymentId: payment.id,
     method: payment.method,
@@ -157,7 +154,7 @@ const createPayment = async (
     amount: payment.amount,
     currency: payment.currency,
     method: payment.method,
-    status: payment.status, // Will be 'pending'
+    status: payment.status,
     created_at: payment.created_at.toISOString(),
   };
 
@@ -168,7 +165,6 @@ const createPayment = async (
     response.card_last4 = payment.card_last4;
   }
 
-  // Store idempotency key with response
   if (idempotencyKey) {
     await storeIdempotencyKey(idempotencyKey, merchantId, response);
   }

@@ -3,12 +3,10 @@ require("dotenv").config();
 
 const redisUrl = process.env.REDIS_URL || "redis://redis:6379";
 
-// Create queues for different job types
 const paymentQueue = Bull("payment-processing", redisUrl);
 const webhookQueue = Bull("webhook-delivery", redisUrl);
 const refundQueue = Bull("refund-processing", redisUrl);
 
-// Queue event listeners for monitoring
 paymentQueue.on("error", (error) => {
   console.error("Payment queue error:", error);
 });

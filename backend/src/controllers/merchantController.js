@@ -73,7 +73,6 @@ const getTransactions = async (req, res) => {
   }
 };
 
-// NEW: Get webhook configuration
 const getWebhookConfig = async (req, res) => {
   try {
     const merchantId = req.merchant.id;
@@ -109,7 +108,6 @@ const getWebhookConfig = async (req, res) => {
   }
 };
 
-// NEW: Update webhook configuration
 const updateWebhookConfig = async (req, res) => {
   try {
     const merchantId = req.merchant.id;
@@ -117,12 +115,10 @@ const updateWebhookConfig = async (req, res) => {
 
     let webhookSecret = null;
 
-    // Generate new secret if requested
     if (regenerate_secret) {
       webhookSecret = "whsec_" + generateId("").substring(4, 20);
     }
 
-    // Update webhook URL and/or secret
     if (webhookSecret) {
       await pool.query(
         "UPDATE merchants SET webhook_url = $1, webhook_secret = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3",
@@ -135,7 +131,6 @@ const updateWebhookConfig = async (req, res) => {
       );
     }
 
-    // Fetch updated config
     const result = await pool.query(
       "SELECT webhook_url, webhook_secret FROM merchants WHERE id = $1",
       [merchantId]
@@ -157,12 +152,10 @@ const updateWebhookConfig = async (req, res) => {
   }
 };
 
-// NEW: Test webhook endpoint
 const testWebhook = async (req, res) => {
   try {
     const merchantId = req.merchant.id;
 
-    // Create a test webhook event
     const testPayload = {
       payment: {
         id: "pay_test_" + Date.now(),

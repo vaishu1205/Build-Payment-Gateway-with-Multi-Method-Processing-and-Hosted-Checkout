@@ -12,11 +12,9 @@ const webhookController = require("../controllers/webhookController");
 
 router.get("/health", healthController.healthCheck);
 
-// Test endpoints
 router.get("/api/v1/test/merchant", testController.getTestMerchant);
 router.get("/api/v1/test/jobs/status", testController.getJobStatus);
 
-// Order endpoints
 router.post("/api/v1/orders", authenticateApiKey, orderController.createOrder);
 router.get("/api/v1/orders/:order_id/public", orderController.getOrderPublic);
 router.get(
@@ -25,7 +23,6 @@ router.get(
   orderController.getOrder
 );
 
-// Payment endpoints - specific routes BEFORE parameterized routes
 router.get(
   "/api/v1/payments/stats",
   authenticateApiKey,
@@ -52,14 +49,12 @@ router.get(
   paymentController.getPayment
 );
 
-// NEW: Payment capture endpoint
 router.post(
   "/api/v1/payments/:payment_id/capture",
   authenticateApiKey,
   paymentController.capturePayment
 );
 
-// NEW: Refund endpoints
 router.post(
   "/api/v1/payments/:payment_id/refunds",
   authenticateApiKey,
@@ -71,7 +66,6 @@ router.get(
   refundController.getRefund
 );
 
-// NEW: Webhook endpoints
 router.get(
   "/api/v1/webhooks",
   authenticateApiKey,
@@ -83,7 +77,6 @@ router.post(
   webhookController.retryWebhook
 );
 
-// NEW: Merchant webhook configuration
 router.get(
   "/api/v1/merchant/webhook",
   authenticateApiKey,

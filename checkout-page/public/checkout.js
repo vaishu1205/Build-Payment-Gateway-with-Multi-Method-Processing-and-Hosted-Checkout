@@ -3,7 +3,6 @@
 
   class PaymentGateway {
     constructor(options) {
-      // Validate required options
       if (!options || !options.key || !options.orderId) {
         throw new Error("PaymentGateway requires key and orderId");
       }
@@ -21,12 +20,10 @@
     }
 
     open() {
-      // Create modal overlay
       this.modal = document.createElement("div");
       this.modal.id = "payment-gateway-modal";
       this.modal.setAttribute("data-test-id", "payment-modal");
 
-      // Apply modal styles
       this.modal.style.cssText = `
         position: fixed;
         top: 0;
@@ -40,7 +37,6 @@
         z-index: 999999;
       `;
 
-      // Create modal content container
       const modalContent = document.createElement("div");
       modalContent.className = "modal-content";
       modalContent.style.cssText = `
@@ -55,7 +51,6 @@
         overflow: hidden;
       `;
 
-      // Create close button
       const closeButton = document.createElement("button");
       closeButton.setAttribute("data-test-id", "close-modal-button");
       closeButton.className = "close-button";
@@ -79,7 +74,6 @@
       `;
       closeButton.onclick = () => this.close();
 
-      // Create iframe
       this.iframe = document.createElement("iframe");
       this.iframe.setAttribute("data-test-id", "payment-iframe");
       this.iframe.src = `http://localhost:3001/checkout?order_id=${this.orderId}&embedded=true`;
@@ -89,22 +83,16 @@
         border: none;
       `;
 
-      // Assemble modal
       modalContent.appendChild(closeButton);
       modalContent.appendChild(this.iframe);
       this.modal.appendChild(modalContent);
 
-      // Add to document
       document.body.appendChild(this.modal);
 
-      // Set up message listener
       window.addEventListener("message", this.boundMessageHandler);
     }
 
     handleMessage(event) {
-      // Accept messages from any origin for development
-      // In production, validate event.origin
-
       if (!event.data || !event.data.type) {
         return;
       }
@@ -124,10 +112,8 @@
     }
 
     close() {
-      // Remove message listener
       window.removeEventListener("message", this.boundMessageHandler);
 
-      // Remove modal from DOM
       if (this.modal && this.modal.parentNode) {
         this.modal.parentNode.removeChild(this.modal);
       }
@@ -135,11 +121,9 @@
       this.modal = null;
       this.iframe = null;
 
-      // Call onClose callback
       this.onClose();
     }
   }
 
-  // Expose globally
   window.PaymentGateway = PaymentGateway;
 })();

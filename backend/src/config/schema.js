@@ -6,7 +6,6 @@ const createTables = async () => {
   try {
     await client.query("BEGIN");
 
-    // Merchants table (add webhook_secret column for Deliverable 2)
     await client.query(`
       CREATE TABLE IF NOT EXISTS merchants (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -22,7 +21,6 @@ const createTables = async () => {
       )
     `);
 
-    // Add webhook_secret column if it doesn't exist (for existing databases)
     await client.query(`
       DO $$ 
       BEGIN 
@@ -49,7 +47,6 @@ const createTables = async () => {
       )
     `);
 
-    // Payments table (add captured column for Deliverable 2)
     await client.query(`
       CREATE TABLE IF NOT EXISTS payments (
         id VARCHAR(64) PRIMARY KEY,
@@ -70,7 +67,6 @@ const createTables = async () => {
       )
     `);
 
-    // Add captured column if it doesn't exist (for existing databases)
     await client.query(`
       DO $$ 
       BEGIN 
@@ -83,7 +79,6 @@ const createTables = async () => {
       END $$;
     `);
 
-    // NEW: Refunds table
     await client.query(`
       CREATE TABLE IF NOT EXISTS refunds (
         id VARCHAR(64) PRIMARY KEY,
@@ -97,7 +92,6 @@ const createTables = async () => {
       )
     `);
 
-    // NEW: Webhook Logs table
     await client.query(`
       CREATE TABLE IF NOT EXISTS webhook_logs (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -114,7 +108,6 @@ const createTables = async () => {
       )
     `);
 
-    // NEW: Idempotency Keys table
     await client.query(`
       CREATE TABLE IF NOT EXISTS idempotency_keys (
         key VARCHAR(255) NOT NULL,
@@ -126,7 +119,6 @@ const createTables = async () => {
       )
     `);
 
-    // Existing indexes
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_orders_merchant_id ON orders(merchant_id)
     `);
@@ -139,7 +131,6 @@ const createTables = async () => {
       CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status)
     `);
 
-    // NEW: Indexes for Deliverable 2
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_refunds_payment_id ON refunds(payment_id)
     `);

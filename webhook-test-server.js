@@ -13,7 +13,6 @@ app.post("/webhook", (req, res) => {
   const payload = JSON.stringify(req.body);
   const secret = "whsec_test_abc123";
 
-  // Verify signature
   const expectedSignature = crypto
     .createHmac("sha256", secret)
     .update(payload)
@@ -31,7 +30,6 @@ app.post("/webhook", (req, res) => {
   console.log(JSON.stringify(req.body.data, null, 2));
   console.log("=================================\n");
 
-  // Always respond with 200 to acknowledge receipt
   res.status(200).send("OK");
 });
 

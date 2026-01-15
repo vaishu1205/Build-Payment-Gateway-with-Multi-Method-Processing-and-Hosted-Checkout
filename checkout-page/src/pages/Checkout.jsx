@@ -90,7 +90,6 @@ const Checkout = () => {
         error.response?.data?.error?.description || "Payment failed";
       setErrorMessage(errorMsg);
 
-      // Send failure message to parent
       sendMessageToParent("payment_failed", {
         error: errorMsg,
       });
@@ -120,7 +119,6 @@ const Checkout = () => {
         error.response?.data?.error?.description || "Payment failed";
       setErrorMessage(errorMsg);
 
-      // Send failure message to parent
       sendMessageToParent("payment_failed", {
         error: errorMsg,
       });
@@ -140,7 +138,6 @@ const Checkout = () => {
           setProcessing(false);
           clearInterval(interval);
 
-          // Send success message to parent
           sendMessageToParent("payment_success", {
             paymentId: payment.id,
             orderId: payment.order_id,
@@ -154,7 +151,6 @@ const Checkout = () => {
           setProcessing(false);
           clearInterval(interval);
 
-          // Send failure message to parent
           sendMessageToParent("payment_failed", {
             error: errorMsg,
           });
@@ -170,7 +166,6 @@ const Checkout = () => {
         setProcessing(false);
         setErrorMessage("Payment timeout");
 
-        // Send timeout message to parent
         sendMessageToParent("payment_failed", {
           error: "Payment timeout",
         });

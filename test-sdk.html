@@ -49,7 +49,6 @@
 
     <div id="result"></div>
 
-    <!-- Include the SDK -->
     <script src="http://localhost:3001/checkout.js"></script>
 
     <script>
@@ -60,7 +59,6 @@
           resultDiv.innerHTML = "<p>Creating order...</p>";
 
           try {
-            // Step 1: Create an order via API
             const orderResponse = await fetch(
               "http://localhost:8000/api/v1/orders",
               {
@@ -85,7 +83,6 @@
               order.id +
               "</p><p>Opening payment modal...</p>";
 
-            // Step 2: Open payment modal using SDK
             const checkout = new PaymentGateway({
               key: "key_test_abc123",
               orderId: order.id,
