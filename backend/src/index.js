@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 const { initializeDatabase } = require("./config/schema");
 const routes = require("./routes");
+const { paymentQueue, webhookQueue, refundQueue } = require("./config/queue");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -16,6 +17,15 @@ const startServer = async () => {
   try {
     await initializeDatabase();
 
+    // Test Redis connection
+    try {
+      await paymentQueue.isReady();
+      console.log("Connected to Redis successfully");
+    } catch (redisError) {
+      console.error("Redis connection failed:", redisError.message);
+      console.log("Job queue features will be unavailable");
+    }
+
     app.listen(PORT, () => {
       console.log(`Payment Gateway API running on port ${PORT}`);
     });
@@ -24,5 +34,14 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
+// Graceful shutdown
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM received, closing server...");
+  await paymentQueue.close();
+  await webhookQueue.close();
+  await refundQueue.close();
+  process.exit(0);
+});
 
 startServer();

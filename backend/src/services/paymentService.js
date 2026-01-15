@@ -6,8 +6,32 @@ const {
   detectCardNetwork,
   validateCardExpiry,
 } = require("../utils/validators");
+const { paymentQueue } = require("../config/queue");
+const {
+  checkIdempotencyKey,
+  storeIdempotencyKey,
+} = require("../utils/idempotency");
 
-const createPayment = async (merchantId, paymentData) => {
+const createPayment = async (
+  merchantId,
+  paymentData,
+  idempotencyKey = null
+) => {
+  // Check idempotency key
+  if (idempotencyKey) {
+    const cachedResponse = await checkIdempotencyKey(
+      idempotencyKey,
+      merchantId
+    );
+    if (cachedResponse) {
+      console.log(
+        "Returning cached response for idempotency key:",
+        idempotencyKey
+      );
+      return cachedResponse;
+    }
+  }
+
   const { order_id, method, vpa, card } = paymentData;
 
   const orderResult = await pool.query(
@@ -97,10 +121,11 @@ const createPayment = async (merchantId, paymentData) => {
     }
   }
 
+  // Create payment with 'pending' status (changed from 'processing' for Deliverable 2)
   const result = await pool.query(
     `
     INSERT INTO payments (id, order_id, merchant_id, amount, currency, method, status, vpa, card_network, card_last4, created_at, updated_at)
-    VALUES ($1, $2, $3, $4, $5, $6, 'processing', $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     RETURNING *
   `,
     [
@@ -118,7 +143,13 @@ const createPayment = async (merchantId, paymentData) => {
 
   const payment = result.rows[0];
 
-  processPaymentAsync(paymentId, method);
+  // Enqueue payment processing job (async processing for Deliverable 2)
+  await paymentQueue.add({
+    paymentId: payment.id,
+    method: payment.method,
+  });
+
+  console.log(`Payment ${payment.id} queued for processing`);
 
   const response = {
     id: payment.id,
@@ -126,7 +157,7 @@ const createPayment = async (merchantId, paymentData) => {
     amount: payment.amount,
     currency: payment.currency,
     method: payment.method,
-    status: payment.status,
+    status: payment.status, // Will be 'pending'
     created_at: payment.created_at.toISOString(),
   };
 
@@ -137,60 +168,12 @@ const createPayment = async (merchantId, paymentData) => {
     response.card_last4 = payment.card_last4;
   }
 
+  // Store idempotency key with response
+  if (idempotencyKey) {
+    await storeIdempotencyKey(idempotencyKey, merchantId, response);
+  }
+
   return response;
-};
-
-const processPaymentAsync = async (paymentId, method) => {
-  const testMode = process.env.TEST_MODE === "true";
-  const delay = testMode
-    ? parseInt(process.env.TEST_PROCESSING_DELAY || "1000")
-    : Math.floor(
-        Math.random() *
-          (parseInt(process.env.PROCESSING_DELAY_MAX) -
-            parseInt(process.env.PROCESSING_DELAY_MIN) +
-            1)
-      ) + parseInt(process.env.PROCESSING_DELAY_MIN);
-
-  setTimeout(async () => {
-    try {
-      let isSuccess;
-
-      if (testMode) {
-        isSuccess = process.env.TEST_PAYMENT_SUCCESS === "true";
-      } else {
-        const successRate =
-          method === "upi"
-            ? parseFloat(process.env.UPI_SUCCESS_RATE)
-            : parseFloat(process.env.CARD_SUCCESS_RATE);
-        isSuccess = Math.random() < successRate;
-      }
-
-      if (isSuccess) {
-        await pool.query(
-          `
-          UPDATE payments 
-          SET status = 'success', updated_at = CURRENT_TIMESTAMP
-          WHERE id = $1
-        `,
-          [paymentId]
-        );
-      } else {
-        await pool.query(
-          `
-          UPDATE payments 
-          SET status = 'failed', 
-              error_code = 'PAYMENT_FAILED',
-              error_description = 'Payment processing failed',
-              updated_at = CURRENT_TIMESTAMP
-          WHERE id = $1
-        `,
-          [paymentId]
-        );
-      }
-    } catch (error) {
-      console.error("Error processing payment:", error);
-    }
-  }, delay);
 };
 
 const getPaymentById = async (paymentId, merchantId) => {
@@ -215,6 +198,7 @@ const getPaymentById = async (paymentId, merchantId) => {
     currency: payment.currency,
     method: payment.method,
     status: payment.status,
+    captured: payment.captured || false,
     created_at: payment.created_at.toISOString(),
     updated_at: payment.updated_at.toISOString(),
   };
@@ -234,7 +218,54 @@ const getPaymentById = async (paymentId, merchantId) => {
   return response;
 };
 
+const capturePayment = async (paymentId, merchantId, amount) => {
+  const result = await pool.query(
+    "SELECT * FROM payments WHERE id = $1 AND merchant_id = $2",
+    [paymentId, merchantId]
+  );
+
+  if (result.rows.length === 0) {
+    throw {
+      code: "NOT_FOUND_ERROR",
+      description: "Payment not found",
+    };
+  }
+
+  const payment = result.rows[0];
+
+  if (payment.status !== "success") {
+    throw {
+      code: "BAD_REQUEST_ERROR",
+      description: "Payment not in capturable state",
+    };
+  }
+
+  if (payment.captured) {
+    throw {
+      code: "BAD_REQUEST_ERROR",
+      description: "Payment already captured",
+    };
+  }
+
+  if (amount && amount !== payment.amount) {
+    throw {
+      code: "BAD_REQUEST_ERROR",
+      description: "Capture amount must match payment amount",
+    };
+  }
+
+  await pool.query(
+    `UPDATE payments 
+     SET captured = true, updated_at = CURRENT_TIMESTAMP 
+     WHERE id = $1`,
+    [paymentId]
+  );
+
+  return await getPaymentById(paymentId, merchantId);
+};
+
 module.exports = {
   createPayment,
   getPaymentById,
+  capturePayment,
 };

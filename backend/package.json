@@ -1,18 +1,22 @@
 {
   "name": "payment-gateway-backend",
-  "version": "1.0.0",
-  "description": "Payment Gateway API",
+  "version": "2.0.0",
+  "description": "Payment Gateway API with Async Processing",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "worker": "node src/worker.js"
   },
   "dependencies": {
     "express": "^4.18.2",
     "pg": "^8.11.3",
     "dotenv": "^16.3.1",
     "cors": "^2.8.5",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "bull": "^4.11.5",
+    "axios": "^1.6.2",
+    "crypto": "^1.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

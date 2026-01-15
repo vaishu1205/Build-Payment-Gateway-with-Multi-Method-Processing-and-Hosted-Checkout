@@ -33,5 +33,5 @@ Thumbs.db
 # Docker
 *.pid
 
-# Test files (optional - only if you want to exclude it)
+# Test files 
 test-order.html

@@ -17,10 +17,14 @@ const Checkout = () => {
   const [paymentId, setPaymentId] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isEmbedded, setIsEmbedded] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const order_id = params.get("order_id");
+    const embedded = params.get("embedded");
+
+    setIsEmbedded(embedded === "true");
 
     if (order_id) {
       setOrderId(order_id);
@@ -30,6 +34,18 @@ const Checkout = () => {
       setErrorMessage("Order ID not provided");
     }
   }, []);
+
+  const sendMessageToParent = (type, data) => {
+    if (isEmbedded && window.parent) {
+      window.parent.postMessage(
+        {
+          type: type,
+          data: data,
+        },
+        "*"
+      );
+    }
+  };
 
   const fetchOrderDetails = async (order_id) => {
     try {
@@ -70,9 +86,14 @@ const Checkout = () => {
       pollPaymentStatus(payment.id);
     } catch (error) {
       setProcessing(false);
-      setErrorMessage(
-        error.response?.data?.error?.description || "Payment failed"
-      );
+      const errorMsg =
+        error.response?.data?.error?.description || "Payment failed";
+      setErrorMessage(errorMsg);
+
+      // Send failure message to parent
+      sendMessageToParent("payment_failed", {
+        error: errorMsg,
+      });
     }
   };
 
@@ -95,9 +116,14 @@ const Checkout = () => {
       pollPaymentStatus(payment.id);
     } catch (error) {
       setProcessing(false);
-      setErrorMessage(
-        error.response?.data?.error?.description || "Payment failed"
-      );
+      const errorMsg =
+        error.response?.data?.error?.description || "Payment failed";
+      setErrorMessage(errorMsg);
+
+      // Send failure message to parent
+      sendMessageToParent("payment_failed", {
+        error: errorMsg,
+      });
     }
   };
 
@@ -113,11 +139,25 @@ const Checkout = () => {
           setPaymentStatus("success");
           setProcessing(false);
           clearInterval(interval);
+
+          // Send success message to parent
+          sendMessageToParent("payment_success", {
+            paymentId: payment.id,
+            orderId: payment.order_id,
+            amount: payment.amount,
+            status: payment.status,
+          });
         } else if (payment.status === "failed") {
           setPaymentStatus("failed");
-          setErrorMessage(payment.error_description || "Payment failed");
+          const errorMsg = payment.error_description || "Payment failed";
+          setErrorMessage(errorMsg);
           setProcessing(false);
           clearInterval(interval);
+
+          // Send failure message to parent
+          sendMessageToParent("payment_failed", {
+            error: errorMsg,
+          });
         }
       } catch (error) {
         console.error("Error polling payment status:", error);
@@ -129,6 +169,11 @@ const Checkout = () => {
       if (processing) {
         setProcessing(false);
         setErrorMessage("Payment timeout");
+
+        // Send timeout message to parent
+        sendMessageToParent("payment_failed", {
+          error: "Payment timeout",
+        });
       }
     }, 30000);
   };

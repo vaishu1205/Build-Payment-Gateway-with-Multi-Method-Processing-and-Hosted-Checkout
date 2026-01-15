@@ -100,6 +100,18 @@ const Dashboard = () => {
           >
             View Transactions
           </button>
+          <button
+            onClick={() => navigate("/dashboard/webhooks")}
+            style={styles.navButton}
+          >
+            Webhook Configuration
+          </button>
+          <button
+            onClick={() => navigate("/dashboard/docs")}
+            style={styles.navButton}
+          >
+            API Documentation
+          </button>
         </div>
       </div>
     </div>
@@ -123,7 +135,10 @@ const styles = {
     marginBottom: "30px",
   },
   navigation: {
-    textAlign: "center",
+    display: "flex",
+    justifyContent: "center",
+    gap: "15px",
+    flexWrap: "wrap",
   },
   navButton: {
     padding: "12px 24px",
