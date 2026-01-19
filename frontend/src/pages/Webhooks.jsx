@@ -34,7 +34,7 @@ const Webhooks = () => {
             "X-Api-Key": key,
             "X-Api-Secret": secret,
           },
-        }
+        },
       );
 
       setWebhookUrl(response.data.webhook_url || "");
@@ -53,7 +53,7 @@ const Webhooks = () => {
             "X-Api-Key": key,
             "X-Api-Secret": secret,
           },
-        }
+        },
       );
 
       setWebhookLogs(response.data.data || []);
@@ -78,7 +78,7 @@ const Webhooks = () => {
             "X-Api-Key": apiKey,
             "X-Api-Secret": apiSecret,
           },
-        }
+        },
       );
 
       setMessage("Webhook configuration saved successfully");
@@ -103,7 +103,7 @@ const Webhooks = () => {
             "X-Api-Key": apiKey,
             "X-Api-Secret": apiSecret,
           },
-        }
+        },
       );
 
       setWebhookSecret(response.data.webhook_secret);
@@ -129,7 +129,7 @@ const Webhooks = () => {
             "X-Api-Key": apiKey,
             "X-Api-Secret": apiSecret,
           },
-        }
+        },
       );
 
       setMessage("Test webhook sent");
@@ -157,7 +157,7 @@ const Webhooks = () => {
             "X-Api-Key": apiKey,
             "X-Api-Secret": apiSecret,
           },
-        }
+        },
       );
 
       setMessage("Webhook retry scheduled");

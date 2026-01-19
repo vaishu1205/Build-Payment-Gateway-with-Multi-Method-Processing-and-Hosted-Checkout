@@ -31,7 +31,7 @@ const Transactions = () => {
             "X-Api-Key": key,
             "X-Api-Secret": secret,
           },
-        }
+        },
       );
 
       setTransactions(response.data.payments || []);

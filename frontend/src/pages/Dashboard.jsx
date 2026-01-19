@@ -40,7 +40,7 @@ const Dashboard = () => {
             "X-Api-Key": key,
             "X-Api-Secret": secret,
           },
-        }
+        },
       );
 
       const data = response.data;
@@ -52,7 +52,7 @@ const Dashboard = () => {
             ? Math.round(
                 (parseInt(data.successful_payments) /
                   parseInt(data.total_payments)) *
-                  100
+                  100,
               )
             : 0,
       });
