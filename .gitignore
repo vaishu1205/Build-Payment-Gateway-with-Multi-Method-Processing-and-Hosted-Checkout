@@ -32,6 +32,3 @@ Thumbs.db
 
 # Docker
 *.pid
-
-# Test files 
-test-order.html
